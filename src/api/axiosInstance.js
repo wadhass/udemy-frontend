@@ -4,7 +4,7 @@ const axiosInstance = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
     (import.meta.env.PROD
-      ? "https://udemy-backend-sv8z.onrender.com"
+      ? "https://udemy-backend-1-tjmq.onrender.com"
       : "http://localhost:5000"),
 });
 
