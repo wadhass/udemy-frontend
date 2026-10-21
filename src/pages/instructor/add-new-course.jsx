@@ -8,14 +8,13 @@ import {
   courseCurriculumInitialFormData,
   courseLandingInitialFormData,
 } from "@/config";
-import { AuthContext } from "@/context/auth-context";
 import { InstructorContext } from "@/context/instructor-context";
 import {
-  addNewCourseService,
-  fetchInstructorCourseDetailsService,
-  updateCourseByIdService,
+  createAdminCourseService,
+  fetchAdminCourseDetailsService,
+  updateAdminCourseService,
 } from "@/services";
-import { useContext, useEffect } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 function AddNewCoursePage() {
@@ -28,11 +27,10 @@ function AddNewCoursePage() {
     setCurrentEditedCourseId,
   } = useContext(InstructorContext);
 
-  const { auth } = useContext(AuthContext);
   const navigate = useNavigate();
   const params = useParams();
-
-  console.log(params);
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   function isEmpty(value) {
     if (Array.isArray(value)) {
@@ -69,9 +67,9 @@ function AddNewCoursePage() {
   }
 
   async function handleCreateCourse() {
+    setFormError("");
+    setSaving(true);
     const courseFinalFormData = {
-      instructorId: auth?.user?._id,
-      instructorName: auth?.user?.userName,
       date: new Date(),
       ...courseLandingFormData,
       students: [],
@@ -79,68 +77,108 @@ function AddNewCoursePage() {
       isPublised: true,
     };
 
-    const response =
-      currentEditedCourseId !== null
-        ? await updateCourseByIdService(
+    try {
+      const response = currentEditedCourseId
+        ? await updateAdminCourseService(
             currentEditedCourseId,
             courseFinalFormData
           )
-        : await addNewCourseService(courseFinalFormData);
+        : await createAdminCourseService(courseFinalFormData);
 
-    if (response?.success) {
+      if (!response?.success) {
+        throw new Error(response?.message || "The course could not be saved.");
+      }
       setCourseLandingFormData(courseLandingInitialFormData);
       setCourseCurriculumFormData(courseCurriculumInitialFormData);
-      navigate(-1);
       setCurrentEditedCourseId(null);
+      navigate("/admin");
+    } catch (requestError) {
+      setFormError(
+        requestError?.response?.data?.message ||
+          requestError.message ||
+          "The course could not be saved."
+      );
+    } finally {
+      setSaving(false);
     }
-
-    console.log(courseFinalFormData, "courseFinalFormData");
   }
 
-  async function fetchCurrentCourseDetails() {
-    const response = await fetchInstructorCourseDetailsService(
-      currentEditedCourseId
-    );
+  const fetchCurrentCourseDetails = useCallback(async () => {
+    setFormError("");
+    try {
+      const response = await fetchAdminCourseDetailsService(
+        currentEditedCourseId
+      );
 
-    if (response?.success) {
+      if (!response?.success) {
+        throw new Error(response?.message || "The course could not be loaded.");
+      }
+
       const setCourseFormData = Object.keys(
         courseLandingInitialFormData
       ).reduce((acc, key) => {
-        acc[key] = response?.data[key] || courseLandingInitialFormData[key];
+        acc[key] =
+          response?.data[key] ?? courseLandingInitialFormData[key];
 
         return acc;
       }, {});
 
-      console.log(setCourseFormData, response?.data, "setCourseFormData");
       setCourseLandingFormData(setCourseFormData);
-      setCourseCurriculumFormData(response?.data?.curriculum);
+      setCourseCurriculumFormData(response?.data?.curriculum || []);
+    } catch (requestError) {
+      setFormError(
+        requestError?.response?.data?.message ||
+          requestError.message ||
+          "The course could not be loaded."
+      );
     }
-
-    console.log(response, "response");
-  }
-
-  useEffect(() => {
-    if (currentEditedCourseId !== null) fetchCurrentCourseDetails();
-  }, [currentEditedCourseId]);
+  }, [
+    currentEditedCourseId,
+    setCourseCurriculumFormData,
+    setCourseLandingFormData,
+  ]);
 
   useEffect(() => {
-    if (params?.courseId) setCurrentEditedCourseId(params?.courseId);
-  }, [params?.courseId]);
+    if (currentEditedCourseId) fetchCurrentCourseDetails();
+  }, [currentEditedCourseId, fetchCurrentCourseDetails]);
 
-  console.log(params, currentEditedCourseId, "params");
+  useEffect(() => {
+    if (params?.courseId) {
+      setCurrentEditedCourseId(params.courseId);
+    } else {
+      setCurrentEditedCourseId(null);
+      setCourseLandingFormData(courseLandingInitialFormData);
+      setCourseCurriculumFormData(courseCurriculumInitialFormData);
+    }
+  }, [
+    params?.courseId,
+    setCourseCurriculumFormData,
+    setCourseLandingFormData,
+    setCurrentEditedCourseId,
+  ]);
 
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between">
-        <h1 className="text-3xl font-extrabold mb-5">Create a new course</h1>
+        <h1 className="text-3xl font-extrabold mb-5">
+          {params?.courseId ? "Edit course" : "Create a new course"}
+        </h1>
         <Button
-          disabled={!validateFormData()}
+          disabled={!validateFormData() || saving}
           className="text-sm tracking-wider font-bold px-8"
           onClick={handleCreateCourse}
         >
-          SUBMIT
+          {saving ? "SAVING..." : "SAVE COURSE"}
         </Button>
       </div>
+      {formError ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+        >
+          {formError}
+        </div>
+      ) : null}
       <Card>
         <CardContent>
           <div className="container mx-auto p-4">

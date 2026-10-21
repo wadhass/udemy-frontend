@@ -15,8 +15,61 @@ export async function loginService(formData) {
   return data;
 }
 
+export async function requestPasswordResetService(userEmail) {
+  const { data } = await axiosInstance.post("/auth/forgot-password", {
+    userEmail,
+  });
+
+  return data;
+}
+
+export async function resetPasswordService(token, password) {
+  const { data } = await axiosInstance.post("/auth/reset-password", {
+    token,
+    password,
+  });
+
+  return data;
+}
+
 export async function checkAuthService() {
   const { data } = await axiosInstance.get("/auth/check-auth");
+
+  return data;
+}
+
+export async function fetchAdminDashboardService() {
+  const { data } = await axiosInstance.get("/admin/dashboard");
+
+  return data;
+}
+
+export async function fetchAdminCoursesService(page = 1) {
+  const { data } = await axiosInstance.get(`/admin/courses?page=${page}`);
+
+  return data;
+}
+
+export async function fetchAdminCourseDetailsService(id) {
+  const { data } = await axiosInstance.get(`/admin/courses/${id}`);
+
+  return data;
+}
+
+export async function createAdminCourseService(formData) {
+  const { data } = await axiosInstance.post("/admin/courses", formData);
+
+  return data;
+}
+
+export async function updateAdminCourseService(id, formData) {
+  const { data } = await axiosInstance.put(`/admin/courses/${id}`, formData);
+
+  return data;
+}
+
+export async function deleteAdminCourseService(id) {
+  const { data } = await axiosInstance.delete(`/admin/courses/${id}`);
 
   return data;
 }
@@ -46,24 +99,9 @@ export async function fetchInstructorCourseListService() {
   return data;
 }
 
-export async function addNewCourseService(formData) {
-  const { data } = await axiosInstance.post(`/instructor/course/add`, formData);
-
-  return data;
-}
-
 export async function fetchInstructorCourseDetailsService(id) {
   const { data } = await axiosInstance.get(
     `/instructor/course/get/details/${id}`
-  );
-
-  return data;
-}
-
-export async function updateCourseByIdService(id, formData) {
-  const { data } = await axiosInstance.put(
-    `/instructor/course/update/${id}`,
-    formData
   );
 
   return data;

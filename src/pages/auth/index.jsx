@@ -100,6 +100,12 @@ function AuthPage() {
                   isButtonDisabled={!checkIfSignInFormIsValid()}
                   handleSubmit={handleLoginUser}
                 />
+                <Link
+                  to="/forgot-password"
+                  className="mt-3 inline-block text-sm text-primary underline-offset-4 hover:underline"
+                >
+                  Forgot your password?
+                </Link>
               </CardContent>
             </Card>
           </TabsContent>
